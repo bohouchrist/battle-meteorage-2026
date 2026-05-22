@@ -1387,20 +1387,23 @@ with tab_demo:
         seen["gap_next_min"] = (
             (seen["date"].shift(-1) - seen["date"]).dt.total_seconds() / 60
         )
-        seen["dist_next"]      = seen["dist"].shift(-1)
-        seen["pred_validable"] = seen["gap_next_min"].notna()
-        # Une prédiction n'est VIOLÉE que si le prochain éclair arrive
-        # AVANT T*_i ET en zone dangereuse (< 3 km). Un éclair qui arrive
-        # vite mais à 15 km n'est PAS un échec — la zone aéroport reste sûre.
+        seen["dist_next"]    = seen["dist"].shift(-1)
+        # Le MODÈLE n'est ACTIF que si la confiance dépasse θ.
+        # Sinon : pas de prédiction appliquée → règle 30 min.
+        seen["model_active"]   = seen["confiance"] > theta
+        seen["pred_validable"] = seen["gap_next_min"].notna() & seen["model_active"]
+        # Une prédiction n'est VIOLÉE que si :
+        #   1) le modèle était actif (conf > θ)
+        #   2) le prochain éclair arrive AVANT T*_i
+        #   3) le prochain éclair est en zone dangereuse (< 3 km)
+        # Un éclair rapide mais à 15 km n'est PAS un échec.
         seen["pred_violated"] = (
             seen["pred_validable"]
             & (seen["gap_next_min"] <= seen["horizon_min"])
             & (seen["dist_next"] < DIST_3KM)
         )
-        # Validée = validable ET non violée
-        seen["pred_ok"]         = seen["pred_validable"] & ~seen["pred_violated"]
-        # Sous-cas "safe" : éclair dans la fenêtre mais hors zone danger
-        seen["pred_safe_zone"]  = (
+        seen["pred_ok"]        = seen["pred_validable"] & ~seen["pred_violated"]
+        seen["pred_safe_zone"] = (
             seen["pred_validable"]
             & (seen["gap_next_min"] <= seen["horizon_min"])
             & (seen["dist_next"] >= DIST_3KM)
@@ -1470,42 +1473,56 @@ with tab_demo:
 
         # ── Vérification de la prédiction précédente ────────────
         if idx >= 1:
-            prev      = demo_df.iloc[idx - 1]
-            gap_real  = (current["date"] - prev["date"]).total_seconds() / 60
-            t_pred    = prev["horizon_min"]
-            ecart     = gap_real - t_pred       # >0 : silence respecté
-            dist_cur  = float(current["dist"])
-            in_window = gap_real <= t_pred      # arrivé pendant le silence prédit
-            danger    = dist_cur < DIST_3KM     # < 3 km = zone critique
+            prev          = demo_df.iloc[idx - 1]
+            prev_active   = float(prev["confiance"]) > theta   # modèle actif ?
+            gap_real      = (current["date"] - prev["date"]).total_seconds() / 60
+            t_pred        = prev["horizon_min"]
+            ecart         = gap_real - t_pred
+            dist_cur      = float(current["dist"])
+            in_window     = gap_real <= t_pred
+            danger        = dist_cur < DIST_3KM
 
-            if not in_window:
+            if not prev_active:
+                # Modèle inactif : pas de prédiction appliquée → règle 30 min
+                v_state  = "inactive"
+                v_label  = "⊘ MODÈLE INACTIF (règle 30 min appliquée)"
+                v_color  = "#6B7280"
+                v_explain = (
+                    f"L'éclair précédent ({prev['date'].strftime('%H:%M:%S')}) "
+                    f"avait une confiance <b>{prev['confiance']:.3f} ≤ θ = {theta:.2f}</b>. "
+                    f"Le modèle <b>n'a pas appliqué de prédiction</b>, "
+                    f"la règle des 30 min reste en vigueur. "
+                    f"T*_i = {t_pred:.1f} min n'est <u>pas utilisé</u>."
+                )
+            elif not in_window:
                 v_state  = "ok"
                 v_label  = "✓ PRÉDICTION VALIDÉE"
                 v_color  = "#10B981"
                 v_explain = (
+                    f"Modèle actif (conf {prev['confiance']:.3f} &gt; θ). "
                     f"Silence prédit de <b>{t_pred:.1f} min</b> respecté : "
-                    f"le prochain éclair (celui-ci) est arrivé après "
-                    f"<b>{gap_real:.1f} min</b> (écart : <b>{ecart:+.1f} min</b>)."
+                    f"prochain éclair arrivé après <b>{gap_real:.1f} min</b> "
+                    f"(écart : <b>{ecart:+.1f} min</b>)."
                 )
             elif in_window and not danger:
                 v_state  = "safe"
                 v_label  = "✓ ÉCART ACCEPTABLE (zone safe)"
                 v_color  = "#10B981"
                 v_explain = (
-                    f"L'éclair arrive en <b>{gap_real:.1f} min</b> "
-                    f"(prédit ≥ {t_pred:.1f} min), <u>mais à <b>{dist_cur:.1f} km</b> "
-                    f"de l'aéroport</u> — hors zone danger (≥ 3 km). "
-                    f"La sécurité de la piste n'est <b>pas compromise</b>."
+                    f"Modèle actif. L'éclair arrive en <b>{gap_real:.1f} min</b> "
+                    f"(prédit ≥ {t_pred:.1f} min), <u>mais à <b>{dist_cur:.1f} km</b></u> "
+                    f"— hors zone danger (≥ 3 km). "
+                    f"La sécurité de la piste n'est <b>pas compromise</b>. Modèle carré."
                 )
             else:  # in_window AND danger
                 v_state  = "violated"
                 v_label  = "✗ PRÉDICTION VIOLÉE (vraie alerte)"
                 v_color  = "#EF4444"
                 v_explain = (
+                    f"Modèle actif (conf {prev['confiance']:.3f} &gt; θ). "
                     f"L'éclair arrive en <b>{gap_real:.1f} min</b> "
-                    f"(prédit ≥ {t_pred:.1f} min) <b>ET à {dist_cur:.1f} km</b> "
-                    f"&lt; 3 km : <b>vrai échec de prédiction</b> — "
-                    f"zone aéroport compromise."
+                    f"<b>ET à {dist_cur:.1f} km &lt; 3 km</b> : "
+                    f"<b>vrai échec</b> — zone aéroport compromise."
                 )
 
             st.markdown(
@@ -1517,16 +1534,21 @@ with tab_demo:
                 unsafe_allow_html=True,
             )
             cmp1, cmp2, cmp3, cmp4 = st.columns(4)
-            cmp1.metric("Silence prédit (T*)", f"{t_pred:.1f} min")
-            cmp2.metric("Délai réel",          f"{gap_real:.1f} min",
+            cmp1.metric(
+                f"Conf. précédente {'✓ actif' if prev_active else '⊘ inactif'}",
+                f"{prev['confiance']:.3f}",
+                delta=f"vs θ = {theta:.2f}",
+                delta_color="normal" if prev_active else "off",
+            )
+            cmp2.metric("Silence prédit (T*)", f"{t_pred:.1f} min",
+                        help="Utilisé seulement si modèle actif.")
+            cmp3.metric("Délai réel",          f"{gap_real:.1f} min",
                         delta=f"{ecart:+.1f} min",
                         delta_color="normal" if not in_window else "off")
-            cmp3.metric("Distance éclair",     f"{dist_cur:.1f} km",
-                        delta="zone danger ⚠️" if danger else "zone safe ✓",
-                        delta_color="inverse" if danger else "normal")
             cmp4.metric("Verdict",
-                        {"ok": "✓ Validée",
-                         "safe": "✓ Safe",
+                        {"inactive": "⊘ Inactif",
+                         "ok":       "✓ Validée",
+                         "safe":     "✓ Safe",
                          "violated": "✗ Violée"}[v_state])
 
         # ── Graphe live ──────────────────────────────────────────
@@ -1633,19 +1655,37 @@ with tab_demo:
                         annotation_font_color="#EF4444")
 
         # ── Panneau 2 : T*_i prédit (barres) vs délai réel (◆) ─
-        valid  = seen[seen["pred_validable"]].copy()
-        # Barres : colorées vert si validée, rouge si violée
+        # 1) Éclairs où le modèle était INACTIF (conf ≤ θ) : barre grise
+        #    -- la prédiction T*_i n'aurait PAS été appliquée
+        seen_no_next = seen.iloc[:-1] if len(seen) >= 2 else seen.iloc[0:0]
+        inactive_mask = seen_no_next.copy()
+        inactive_mask = inactive_mask[~inactive_mask["model_active"]]
+        if len(inactive_mask):
+            fig_d.add_trace(go.Bar(
+                x=inactive_mask["date"], y=inactive_mask["horizon_min"],
+                marker_color="#D1D5DB", opacity=0.45,
+                name="Modèle inactif (conf ≤ θ)",
+                marker_line=dict(width=0.5, color="#9CA3AF"),
+                hovertemplate=("<b>%{x|%H:%M:%S}</b><br>"
+                               "Conf ≤ θ → règle 30 min<br>"
+                               "T*_i prédit (non appliqué) : %{y:.1f} min"
+                               "<extra></extra>"),
+            ), row=2, col=1)
+
+        # 2) Éclairs où le modèle était ACTIF et validable
+        valid = seen[seen["pred_validable"]].copy()
         if len(valid):
             bar_colors = ["#10B981" if ok else "#EF4444"
                           for ok in valid["pred_ok"]]
             fig_d.add_trace(go.Bar(
                 x=valid["date"], y=valid["horizon_min"],
-                marker_color=bar_colors, opacity=0.55,
-                name="T*_i prédit",
+                marker_color=bar_colors, opacity=0.7,
+                name="T*_i prédit (modèle actif)",
+                marker_line=dict(width=1, color="#1F2937"),
                 hovertemplate=("<b>%{x|%H:%M:%S}</b><br>"
+                               "Modèle actif (conf > θ)<br>"
                                "T*_i prédit : %{y:.1f} min<extra></extra>"),
             ), row=2, col=1)
-            # Diamants : délai réel observé
             fig_d.add_trace(go.Scatter(
                 x=valid["date"], y=valid["gap_next_min"],
                 mode="markers", name="Délai réel (◆)",
@@ -1655,7 +1695,7 @@ with tab_demo:
                                "Prochain éclair après : %{y:.1f} min"
                                "<extra></extra>"),
             ), row=2, col=1)
-            # Petits segments verticaux : écart prédit/réel
+            # Segments verticaux entre la barre et le diamant
             for _, r in valid.iterrows():
                 color_seg = "#10B981" if r["pred_ok"] else "#EF4444"
                 fig_d.add_trace(go.Scatter(
@@ -1666,16 +1706,25 @@ with tab_demo:
                     hoverinfo="skip",
                 ), row=2, col=1)
 
-        # Barre courante (en attente) : T*_i de l'éclair actuel, jaune
+        # 3) Éclair courant — couleur selon état du modèle
+        cur_active = float(current["confiance"]) > theta
+        cur_color  = "#FBBF24" if cur_active else "#D1D5DB"
+        cur_line   = "#92400E" if cur_active else "#9CA3AF"
+        cur_label  = ("T*_i en attente (modèle actif)" if cur_active
+                      else "Modèle inactif (règle 30 min)")
+        cur_hover  = (
+            f"<b>EN ATTENTE</b><br>"
+            f"Modèle {'ACTIF' if cur_active else 'INACTIF'} "
+            f"(conf {current['confiance']:.3f} "
+            f"{'>' if cur_active else '≤'} θ = {theta:.2f})<br>"
+            f"T*_i = %{{y:.1f}} min<extra></extra>"
+        )
         fig_d.add_trace(go.Bar(
             x=[current["date"]], y=[current["horizon_min"]],
-            marker_color="#FBBF24", opacity=0.7,
-            name="T*_i en attente",
-            marker_line=dict(width=1.5, color="#92400E"),
-            hovertemplate=("<b>EN ATTENTE</b><br>"
-                           "T*_i prédit : %{y:.1f} min<br>"
-                           "(prochain éclair non encore observé)"
-                           "<extra></extra>"),
+            marker_color=cur_color, opacity=0.75,
+            name=cur_label,
+            marker_line=dict(width=1.5, color=cur_line),
+            hovertemplate=cur_hover,
         ), row=2, col=1)
 
         # ── Panneau 3 : confiance ──────────────────────────────
