@@ -1,0 +1,14 @@
+{
+  "model": "GBS_v6",
+  "eval_set": "2023-2025",
+  "n_strikes": 80186,
+  "n_alerts": 1352,
+  "N_L3": 1995,
+  "theta_opt": 0.3,
+  "c_index_train": 0.775515082112513,
+  "c_index_test": 0.7410492495144972,
+  "Risk_pct": 0.1003,
+  "M_L3": 2,
+  "Gain_h": 105.13,
+  "Gain_moy_min": 4.67
+}

@@ -1,0 +1,43 @@
+{
+  "model": "GBS_v7",
+  "features": [
+    "h_cos",
+    "h_sin",
+    "doy_cos",
+    "doy_sin",
+    "saison",
+    "dist_centre",
+    "dist_avg_5",
+    "dist_min_so_far",
+    "silence_min",
+    "freq_5min",
+    "rang",
+    "rang_norm",
+    "airport_enc"
+  ],
+  "n_features": 13,
+  "airports": [
+    "Ajaccio",
+    "Bastia",
+    "Biarritz",
+    "Nantes",
+    "Pise"
+  ],
+  "c_index_train": 0.7755504084704946,
+  "c_index_test": 0.7420505663401884,
+  "c_index_v6_train": 0.7755,
+  "c_index_v6_test": 0.741,
+  "delta_test": 0.001050566340188408,
+  "train_size": 41509,
+  "test_size": 15090,
+  "date_trained": "2026-05-21T14:17:46.178435",
+  "elapsed_seconds": 1788.7461643218994,
+  "hyperparams": {
+    "n_estimators": 50,
+    "learning_rate": 0.15,
+    "max_depth": 3,
+    "subsample": 0.9,
+    "min_samples_leaf": 10,
+    "loss": "coxph"
+  }
+}

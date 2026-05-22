@@ -1,0 +1,9 @@
+{
+  "c_index_train": 0.775515082112513,
+  "c_index_test": 0.7410492495144972,
+  "n_features": 12,
+  "date_trained": "2026-05-15T15:44:14.118709",
+  "train_size": 41509,
+  "test_size": 15090,
+  "elapsed_seconds": 786.9380278587341
+}

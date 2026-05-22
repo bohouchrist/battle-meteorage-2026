@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Jupyter / LaTeX build artifacts
+*.aux
+*.log
+*.nav
+*.snm
+*.out
+*.toc
+*.vrb
+*.listing
+*.synctex.gz
+
+# Office lock files
+~$*
+
+# Données volumineuses (pas dans git)
+data/*.parquet
+data/*.csv
+*.parquet
+segment_alerts_all_airports_eval.csv
+binome_repo/data*/
+
+# Modèles entraînés (.pkl trop gros)
+models/*.pkl
+binome_repo/*.pkl
+
+# Archives historiques (modèles RSF v3/v4 obsolètes, > 2 Go)
+_archive/
+# binome_repo est un repo git séparé (approche Weibull du binôme) — non versionné ici
+binome_repo/
+
+# Notebook drafts
+**/Untitled*.ipynb
+notebooks/modelisation_v5.ipynb
+notebooks/modelisation_v6.ipynb
+notebooks/modelisation_v8.ipynb
+
+# Logs
+logs/*.log
+
+# Streamlit
+.streamlit/secrets.toml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+.claude/
