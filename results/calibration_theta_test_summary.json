@@ -1,0 +1,55 @@
+{
+  "v6": {
+    "theta_opt": 0.3,
+    "Gain_h": 65.94472222221277,
+    "Risk_pct": 0.7692307692307693,
+    "Gain_moy": 6.616527313265497,
+    "n_manques": 2,
+    "n_L3": 260,
+    "n_actif": 417,
+    "n_alertes": 598,
+    "status": "ok"
+  },
+  "v7": {
+    "theta_opt": 0.3,
+    "Gain_h": 63.03166666664333,
+    "Risk_pct": 0.7692307692307693,
+    "Gain_moy": 6.324247491636455,
+    "n_manques": 2,
+    "n_L3": 260,
+    "n_actif": 416,
+    "n_alertes": 598,
+    "status": "ok"
+  },
+  "context": {
+    "test_period": "2021-2022",
+    "test_strikes": 15090,
+    "test_alerts": 387,
+    "constraint": "Risk < 2%",
+    "method": "sweep theta [0;0.99] in 100 steps, max Gain under Risk < 2%"
+  },
+  "jury": {
+    "v6": {
+      "theta_used": 0.3,
+      "Gain_h": 105.13388888885805,
+      "Risk_pct": 0.10025062656641603,
+      "Gain_moy": 4.66570512820376,
+      "n_manques": 2,
+      "n_L3": 1995,
+      "n_actif": 972,
+      "n_alertes": 1352,
+      "status": "ok"
+    },
+    "v7": {
+      "theta_used": 0.3,
+      "Gain_h": 103.53833333325834,
+      "Risk_pct": 0.10025062656641603,
+      "Gain_moy": 4.594896449700814,
+      "n_manques": 2,
+      "n_L3": 1995,
+      "n_actif": 967,
+      "n_alertes": 1352,
+      "status": "ok"
+    }
+  }
+}

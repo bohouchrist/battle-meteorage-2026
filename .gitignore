@@ -1,13 +1,13 @@
-# Python
+# ── Python ─────────────────────────────────────────────────────
 __pycache__/
 *.pyc
 *.pyo
 .pytest_cache/
 .ipynb_checkpoints/
+**/Untitled*.ipynb
 
-# Jupyter / LaTeX build artifacts
+# ── LaTeX build artifacts ──────────────────────────────────────
 *.aux
-*.log
 *.nav
 *.snm
 *.out
@@ -15,43 +15,33 @@ __pycache__/
 *.vrb
 *.listing
 *.synctex.gz
+# (on garde *.log SAUF logs/ et build LaTeX explicites)
+presentation_*.log
+rapport_*.log
+script_*.log
 
-# Office lock files
+# ── Office lock files ──────────────────────────────────────────
 ~$*
 
-# Données volumineuses (pas dans git)
-data/*.parquet
-data/*.csv
-*.parquet
-segment_alerts_all_airports_eval.csv
-binome_repo/data*/
+# ── Données — on garde l'eval jury (22 Mo) et with_alert (3 Mo) ─
+# On ignore la grosse parquet brute (20 Mo, regenerable)
+data/data_df.parquet
 
-# Modèles entraînés (.pkl trop gros)
-models/*.pkl
-binome_repo/*.pkl
-
-# Archives historiques (modèles RSF v3/v4 obsolètes, > 2 Go)
+# ── Archives historiques (2 Go, modèles RSF obsolètes) ─────────
 _archive/
-# binome_repo est un repo git séparé (approche Weibull du binôme) — non versionné ici
+
+# ── Repo séparé du binôme (Weibull) ────────────────────────────
 binome_repo/
 
-# Notebook drafts
-**/Untitled*.ipynb
-notebooks/modelisation_v5.ipynb
-notebooks/modelisation_v6.ipynb
-notebooks/modelisation_v8.ipynb
-
-# Logs
+# ── Logs runtime ───────────────────────────────────────────────
 logs/*.log
 
-# Streamlit
+# ── Streamlit secrets ──────────────────────────────────────────
 .streamlit/secrets.toml
 
-# OS
+# ── OS / IDE ───────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
-
-# IDE
 .vscode/
 .idea/
 .claude/
